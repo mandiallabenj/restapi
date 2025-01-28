@@ -3,7 +3,12 @@ import bookRoutes from "./routes/bookRoutes"
 
 import cors from "cors";
 
-
+const corsOptions = {
+    // Allow only requests from this domain
+    origin: 'http://localhost:8000',
+    Credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
 const app = express()
 const PORT = process.env.PORT || 8000

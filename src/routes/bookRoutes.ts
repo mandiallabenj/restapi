@@ -15,7 +15,22 @@ const books: Book[] = [
 
 // Get all books
 router.get("/books", (req: Request, res: Response) => {
-    res.json(books);
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        const startIndex = (parseInt(page as string, 10) - 1) * parseInt(limit as string, 10);
+        const endIndex = startIndex + parseInt(limit as string, 10);
+
+        const results = books.slice(startIndex, endIndex);
+
+        res.status(200).json({
+            books: results,
+            total: books.length
+        });
+    } catch (error) {
+        console.error("Error fetching books:", error);
+        res.status(500).json({ message: "Error fetching books" });
+    }
+
 });
 
 // Get a book by ID
@@ -34,12 +49,19 @@ router.post("/books", (req: Request, res: Response) => {
     const newBook: Book = {
         id: books.length + 1,
         title: req.body.title,
-        author: req.body.author
+        author: req.body.author,
     };
-    books.push(newBook);
-    res.status(201).json(newBook);
-});
 
+    try {
+        // Add book logic (e.g., database interaction)
+        books.push(newBook); // Assuming in-memory storage for now
+
+        res.status(201).json({ status: 201, message: "Book created successfully", data: newBook });
+    } catch (error) {
+        console.error("Error adding book:", error);
+        res.status(500).json({ status: 500, message: "Error creating book" });
+    }
+});
 // Update a book by ID
 router.put("/books/:id", (req: Request, res: Response) => {
     const bookId = parseInt(req.params.id);
