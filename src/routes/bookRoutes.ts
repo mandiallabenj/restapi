@@ -9,15 +9,13 @@ const router = Router();
 // Get all books
 router.get("/books", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const { page = 1, limit = 10 } = req.query;
-        const startIndex = (parseInt(page as string, 10) - 1) * parseInt(limit as string, 10);
-        const endIndex = startIndex + parseInt(limit as string, 10);
-
-        const books = await Book.find();
+        const books = await Book.find().populate({
+            path: 'user',
+            select: 'name email'
+        });
 
         res.status(200).json({
             books: books,
-            total: books.length
         });
     } catch (error) {
         console.error("Error fetching books:", error);
@@ -39,28 +37,37 @@ router.get("/books", async (req: Request, res: Response, next: NextFunction): Pr
 
 // Create a new book
 router.post("/books", async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+
+    const token = req.header("Authorization")?.replace("Bearer", '');
+    const { title } = req.body;
     try {
         // Add book logic (e.g., database interaction)
-        const token = req.header("Authorization")?.replace("Bearer", "");
-        const { title } = req.body;
-
         if (!token) {
             return res.status(401).json({ message: "No token provided" });
         }
-        // Verify the token
         const decoded = verifyToken(token);
+        if (!decoded) { // Check for invalid token
+            return res.status(401).json({ message: "Invalid token" });
+        }
+
         const userId = decoded.userId;
-        // const user = await User.findById(decoded.userId);
 
-        const book: IBook = new Book({ title, user: userId })
-        await book.save();
+        const book: IBook = new Book({ title, user: userId });
 
-        res.status(201).json({ status: 201, message: "Book created successfully", data: book });
+        const savedBook = await book.save(); // **Crucial: Save the book and get the saved object**
+
+        // Populate the user object after saving
+        const populatedBook = await Book.findById(savedBook._id).populate({
+            path: 'user',
+            select: 'name email'
+        });
+
+        res.status(201).json({ status: 201, message: "Book created successfully", data: populatedBook });
 
     }
     catch (error) {
         console.error("Error adding book:", error);
-        res.status(500).json({ status: 500, message: "Error creating book" });
+        res.status(500).json({ status: error });
     }
 });
 // Update a book by ID

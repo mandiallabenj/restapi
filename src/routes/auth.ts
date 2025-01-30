@@ -53,6 +53,7 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction): P
 
         // Generate JWT
         const token = generateToken(user._id.toString());
+        console.log(token);
 
         const sanitizedUser = {
             id: user._id,
