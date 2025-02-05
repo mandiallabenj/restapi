@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import Book, { IBook } from "../models/books";
 import { generateToken, verifyToken } from "../utils/jwt";
 import User, { IUser } from "../models/user";
+
 const router = Router();
 
 
@@ -56,6 +57,12 @@ router.post("/books", async (req: Request, res: Response, next: NextFunction): P
 
         const savedBook = await book.save(); // **Crucial: Save the book and get the saved object**
 
+        const io = req.app.get('io'); // Get io from app locals
+        if (io) {
+            await emitBookUpdates(io); // Call emitBookUpdates
+        } else {
+            console.error("Socket.IO instance not available in bookRoutes.");
+        }
         // Populate the user object after saving
         const populatedBook = await Book.findById(savedBook._id).populate({
             path: 'user',
@@ -101,4 +108,17 @@ router.delete("/books/:id", async (req: Request, res: Response) => {
     }
 });
 
+
+async function emitBookUpdates(io: any) {
+    try {
+        const books = await Book.find().populate({
+            path: 'user',
+            select: 'name email'
+        });
+        io.emit('book-updates', books);
+    } catch (error) {
+        console.error("Error fetching books for update:", error);
+
+    }
+}
 export default router;
